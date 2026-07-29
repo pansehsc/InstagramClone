@@ -1,0 +1,12 @@
+using System;
+
+namespace API.DTOs.Photos;
+
+public class FollowersDto
+{
+    public Guid UserId { get; set; }
+
+    public string UserName { get; set; } = "";
+
+    public string? ProfilePictureUrl { get; set; }
+}
