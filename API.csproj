@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="CloudinaryDotNet" Version="1.29.2" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
@@ -22,14 +23,20 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Authorization\" />
+    <Folder Include="DTOs\Likes\" />
     <Folder Include="DTOs\Messages\" />
     <Folder Include="DTOs\Notifications\" />
     <Folder Include="DTOs\Photos\" />
     <Folder Include="DTOs\Users\" />
+    <Folder Include="Extensions\" />
+    <Folder Include="Helpers\" />
     <Folder Include="Interfaces\" />
+    <Folder Include="Mapping\" />
     <Folder Include="Middleware\" />
     <Folder Include="Repository\" />
     <Folder Include="Services\" />
+    <Folder Include="Validators\" />
   </ItemGroup>
 
 </Project>

@@ -1,9 +1,12 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace API.DTOs.Comments;
 
 public class CreateCommentDto
 {
-    public Guid PostId { get; set; }
+    //public Guid PostId { get; set; } in url
+    [Required]
+    [MaxLength(1000)]
     public string Content { get; set; } = "";
 }

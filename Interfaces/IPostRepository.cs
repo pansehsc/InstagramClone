@@ -5,10 +5,14 @@ namespace API.Interfaces;
 public interface IPostRepository
 {
     Task<Post?> GetByIdAsync(Guid id);
-    Task<IEnumerable<Post>> GetFeedAsync();
-    Task<IEnumerable<Post>> GetUserPostsAsync(Guid userId);
-    Task AddAsync(Post post);
+    Task<IEnumerable<Post>> GetFeedAsync(Guid userId);
+    Task<IEnumerable<Post>> GetAllAsync();
+
+    void Add(Post post);
+
+    void Update(Post post);
+
     void Delete(Post post);
+
     Task<bool> SaveAllAsync();
 }
-

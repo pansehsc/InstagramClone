@@ -1,6 +1,8 @@
 using System.Text;
 using API.Data;
 using API.Interfaces;
+using API.Repositories;
+using API.Extensions;
 using API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -18,27 +20,20 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Dependency Injection
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IPhotoService, PhotoService>();
+
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ICommentRepository, CommentRepository>();
+builder.Services.AddScoped<IPostRepository, PostRepository>();
+
+//builder.Services.AddTransient<ExceptionMiddleware>();
+builder.Services.AddScoped<ILikeRepository, LikeRepository>();
+builder.Services.AddScoped<IFollowRepository, FollowRepository>();
+// builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+// builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 
 // JWT Authentication
-var tokenKey = builder.Configuration["TokenKey"]
-    ?? throw new Exception("TokenKey not found.");
-
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey =
-                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenKey)),
-
-            ValidateIssuer = false,
-            ValidateAudience = false
-        };
-    });
-
-builder.Services.AddAuthorization();
+builder.Services.AddIdentityServices(builder.Configuration);
 
 builder.Services.AddCors();
 

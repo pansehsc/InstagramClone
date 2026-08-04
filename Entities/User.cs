@@ -15,7 +15,7 @@ public class User
     public string? City { get; set; } 
     public string? ProfilePictureUrl { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime LastActive { get; set; }
+    public DateTime LastActive { get; set; } = DateTime.UtcNow; //
     public string? Bio { get; set; }
     // Navigation properties
     public ICollection<Post> Posts { get; set; } = [];
@@ -23,6 +23,7 @@ public class User
     public ICollection<Photo> Photos { get; set; } = [];
     public ICollection<Messaging> SentMessages { get; set; } = [];
     public ICollection<Messaging> ReceivedMessages { get; set; } = [];
+    public ICollection<Like> Likes { get; set; } = [];
     // users who follow me
     public ICollection<Follow> Followers { get; set; } =[];
     // users i follow
