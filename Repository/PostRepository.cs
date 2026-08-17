@@ -17,10 +17,17 @@ public class PostRepository(AppDbContext context) : IPostRepository
         context.Posts.Remove(post);
     }
 
+    public void Update(Post post)
+    {
+        context.Entry(post).State = EntityState.Modified;
+    }
+
     public async Task<Post?> GetByIdAsync(Guid id)
     {
         return await context.Posts
+            .AsSplitQuery()
             .Include(p => p.User)
+                .ThenInclude(u => u.Photos)
             .Include(p => p.Photos)
             .Include(p => p.Comments)
             .Include(p => p.Likes)
@@ -30,7 +37,9 @@ public class PostRepository(AppDbContext context) : IPostRepository
     public async Task<IEnumerable<Post>> GetAllAsync()
     {
         return await context.Posts
+            .AsSplitQuery()
             .Include(p => p.User)
+                .ThenInclude(u => u.Photos)
             .Include(p => p.Photos)
             .Include(p => p.Comments)
             .Include(p => p.Likes)
@@ -41,11 +50,16 @@ public class PostRepository(AppDbContext context) : IPostRepository
     public async Task<IEnumerable<Post>> GetFeedAsync(Guid currentUserId)
     {
         return await context.Posts
+            .AsSplitQuery()
             .Include(p => p.User)
+                .ThenInclude(u => u.Photos)
             .Include(p => p.Photos)
+            .Include(p => p.Likes)
+            .Include(p => p.Comments)
             .Where(p =>
-            context.Follow.Any(f => 
-            f.FollowerId == currentUserId && 
+            p.UserId == currentUserId ||
+            context.Follow.Any(f =>
+            f.FollowerId == currentUserId &&
             f.FollowingId == p.UserId))
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
@@ -54,11 +68,6 @@ public class PostRepository(AppDbContext context) : IPostRepository
     public async Task<bool> SaveAllAsync()
     {
         return await context.SaveChangesAsync() > 0;
-    }
-
-    public void Update(Post post)
-    {
-        context.Entry(post).State = EntityState.Modified;
     }
 
 }

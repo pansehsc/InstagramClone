@@ -10,13 +10,13 @@ namespace API.Services;
 
 public class TokenService(IConfiguration config) : ITokenService
 {
-    private readonly SymmetricSecurityKey _key =
+    private readonly SymmetricSecurityKey _key = 
         new(Encoding.UTF8.GetBytes(
             config["TokenKey"] ??
             throw new Exception("TokenKey not found in configuration.")));
 
     public string CreateToken(User user)
-    {
+    {   // claim value is stored as string
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),

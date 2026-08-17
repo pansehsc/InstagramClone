@@ -3,7 +3,7 @@ using System;
 namespace API.Entities;
 
 public class Comment
-{
+{   //post id in url
     public Guid Id { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     //public required User CreatedBy { get; set; }

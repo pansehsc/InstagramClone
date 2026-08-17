@@ -47,4 +47,13 @@ public class FollowRepository(AppDbContext context) : IFollowRepository
     {
         return await context.SaveChangesAsync() > 0;
     }
+    public async Task<bool> IsFollowingAsync(
+    Guid followerId,
+    Guid followingId)
+    {
+        return await context.Follow
+            .AnyAsync(f =>
+                f.FollowerId == followerId &&
+                f.FollowingId == followingId);
+    }
 }

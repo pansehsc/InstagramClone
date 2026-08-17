@@ -1,81 +1,78 @@
 using API.DTOs.Posts;
-using API.DTOs.Photos;
 using API.Entities;
 using API.Extensions;
 using API.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using AutoMapper;
 
 namespace API.Controllers;
 
 [Authorize]
 public class PostsController(
     IPostRepository postRepository,
-    IUserRepository userRepository)
+    IUserRepository userRepository,
+    IPhotoService photoService,
+    IMapper mapper)
     : BaseApiController
 {
     // Create Post
     [HttpPost]
-    public async Task<ActionResult<PostDto>> CreatePost(CreatePostDto dto)
+    public async Task<ActionResult<PostDto>> CreatePost(
+        [FromForm] CreatePostDto dto)
     {
         var userId = User.GetUserId();
 
         var user = await userRepository.GetByIdAsync(userId);
 
         if (user == null)
-            return NotFound();
+            return NotFound("User not found.");
 
-        var post = new Post
+        if (dto.Photos == null || dto.Photos.Count == 0)
+            return BadRequest("A post must contain at least one photo.");
+
+        var post = mapper.Map<Post>(dto);
+        post.UserId = userId;
+
+        foreach (var file in dto.Photos)
         {
-            Caption = dto.Caption,
-            Hashtags = dto.Hashtags,
-            UserId = user.Id
-        };
+            var uploadResult = await photoService.AddPhotoAsync(file);
+
+            if (uploadResult.Error != null)
+                return BadRequest(uploadResult.Error.Message);
+
+            if (uploadResult.SecureUrl == null)
+                return BadRequest("Photo upload failed.");
+
+            var photo = new Photo
+            {
+                Url = uploadResult.SecureUrl.AbsoluteUri,
+                PublicId = uploadResult.PublicId,
+
+                // First photo is the post's main/cover photo
+                IsMain = post.Photos.Count == 0
+            };
+
+            post.Photos.Add(photo);
+        }
 
         postRepository.Add(post);
 
         if (!await postRepository.SaveAllAsync())
-            return BadRequest("Problem creating post");
+            return BadRequest("Problem creating post.");
 
-        return Ok(new PostDto
-        {
-            Id = post.Id,
-            Caption = post.Caption,
-            Hashtags = post.Hashtags,
-            CreatedAt = post.CreatedAt,
-            UserName = user.UserName,
-            ProfilePictureUrl = user.ProfilePictureUrl,
-            LikesCount = 0,
-            CommentsCount = 0,
-            Photos = []
-        });
+        var result = mapper.Map<PostDto>(post);
+
+        return Ok(result);
     }
-
-    // Get Feed
+    
     [HttpGet]
     public async Task<ActionResult<IEnumerable<PostDto>>> GetPosts()
     {
         var posts = await postRepository.GetAllAsync();
-
-        var result = posts.Select(post => new PostDto
-        {
-            Id = post.Id,
-            Caption = post.Caption,
-            Hashtags = post.Hashtags,
-            CreatedAt = post.CreatedAt,
-            UserName = post.User.UserName,
-            ProfilePictureUrl = post.User.ProfilePictureUrl,
-            LikesCount = post.Likes.Count,
-            CommentsCount = post.Comments.Count,
-            Photos = post.Photos.Select(photo => new PhotoDto
-            {
-                Id = photo.Id,
-                Url = photo.Url,
-                IsMain = photo.IsMain
-            }).ToList()
-        });
-
+        var result = mapper.Map<IEnumerable<PostDto>>(posts);
         return Ok(result);
+
     }
 
     // Get Single Post
@@ -83,32 +80,15 @@ public class PostsController(
     public async Task<ActionResult<PostDto>> GetPost(Guid id)
     {
         var post = await postRepository.GetByIdAsync(id);
-
         if (post == null)
             return NotFound();
-
-        return Ok(new PostDto
-        {
-            Id = post.Id,
-            Caption = post.Caption,
-            Hashtags = post.Hashtags,
-            CreatedAt = post.CreatedAt,
-            UserName = post.User.UserName,
-            ProfilePictureUrl = post.User.ProfilePictureUrl,
-            LikesCount = post.Likes.Count,
-            CommentsCount = post.Comments.Count,
-            Photos = post.Photos.Select(photo => new PhotoDto
-            {
-                Id = photo.Id,
-                Url = photo.Url,
-                IsMain = photo.IsMain
-            }).ToList()
-        });
+        var postDto = mapper.Map<PostDto>(post);
+        return Ok(postDto);
     }
 
     // Update Post
     [HttpPut("{id:guid}")]
-    public async Task<ActionResult> UpdatePost(Guid id, CreatePostDto dto)
+    public async Task<ActionResult> UpdatePost(Guid id, UpdatePostDto dto)
     {
         var userId = User.GetUserId();
 
@@ -126,7 +106,7 @@ public class PostsController(
         postRepository.Update(post);
 
         if (await postRepository.SaveAllAsync())
-            return NoContent();
+            return Ok("Post updated successfully");
 
         return BadRequest("Problem updating post");
     }
@@ -148,8 +128,17 @@ public class PostsController(
         postRepository.Delete(post);
 
         if (await postRepository.SaveAllAsync())
-            return NoContent();
-
+            return Ok("Post deleted successfully");
+        
         return BadRequest("Problem deleting post");
+    }
+    // get posts shared by users you follow
+    [HttpGet("feed")]
+    public async Task<ActionResult<IEnumerable<PostDto>>> GetFeed()
+    {
+        var currentUserId = User.GetUserId();
+        var posts = await postRepository.GetFeedAsync(currentUserId);
+        var result = mapper.Map<IEnumerable<PostDto>>(posts);
+        return Ok(result);
     }
 }

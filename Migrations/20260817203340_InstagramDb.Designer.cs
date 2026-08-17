@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260803080453_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260817203340_InstagramDb")]
+    partial class InstagramDb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -36,25 +36,14 @@ namespace API.Migrations
                     b.Property<Guid>("CreatedById")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ImageUrl")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid?>("PhotoId")
-                        .HasColumnType("TEXT");
-
                     b.Property<Guid>("PostId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid?>("UserId")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PhotoId");
+                    b.HasIndex("CreatedById");
 
                     b.HasIndex("PostId");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("Comments");
                 });
@@ -67,7 +56,7 @@ namespace API.Migrations
                     b.Property<Guid>("FollowingId")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("FollowedAt")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
                     b.HasKey("FollowerId", "FollowingId");
@@ -79,20 +68,16 @@ namespace API.Migrations
 
             modelBuilder.Entity("API.Entities.Like", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
                     b.Property<Guid>("CreatedById")
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("PostId")
                         .HasColumnType("TEXT");
 
-                    b.HasKey("Id");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("CreatedById", "PostId");
 
                     b.HasIndex("PostId");
 
@@ -136,7 +121,7 @@ namespace API.Migrations
 
                     b.HasIndex("SenderId");
 
-                    b.ToTable("Messaging");
+                    b.ToTable("Messages");
                 });
 
             modelBuilder.Entity("API.Entities.Notification", b =>
@@ -145,22 +130,26 @@ namespace API.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsRead")
                         .HasColumnType("INTEGER");
 
-                    b.Property<Guid>("PostId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("TriggeredByUserId")
+                    b.Property<Guid?>("PostId")
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("PostId");
 
                     b.HasIndex("UserId");
 
@@ -174,6 +163,15 @@ namespace API.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Caption")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Hashtags")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Location")
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("UserId")
@@ -196,9 +194,11 @@ namespace API.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("City")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Country")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
@@ -222,12 +222,15 @@ namespace API.Migrations
                         .IsRequired()
                         .HasColumnType("BLOB");
 
+                    b.Property<string>("PasswordResetToken")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("PasswordResetTokenExpires")
+                        .HasColumnType("TEXT");
+
                     b.Property<byte[]>("PasswordSalt")
                         .IsRequired()
                         .HasColumnType("BLOB");
-
-                    b.Property<string>("ProfilePictureUrl")
-                        .HasColumnType("TEXT");
 
                     b.Property<string>("UserName")
                         .IsRequired()
@@ -244,7 +247,10 @@ namespace API.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("PostId")
+                    b.Property<bool>("IsMain")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("PostId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PublicId")
@@ -269,35 +275,66 @@ namespace API.Migrations
                     b.ToTable("Photo");
                 });
 
+            modelBuilder.Entity("Story", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Content")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PublicId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Url")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Stories");
+                });
+
             modelBuilder.Entity("API.Entities.Comment", b =>
                 {
-                    b.HasOne("Photo", "Photo")
-                        .WithMany()
-                        .HasForeignKey("PhotoId");
+                    b.HasOne("API.Entities.User", "User")
+                        .WithMany("Comments")
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
-                    b.HasOne("API.Entities.Post", null)
+                    b.HasOne("API.Entities.Post", "Post")
                         .WithMany("Comments")
                         .HasForeignKey("PostId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("API.Entities.User", null)
-                        .WithMany("Comments")
-                        .HasForeignKey("UserId");
+                    b.Navigation("Post");
 
-                    b.Navigation("Photo");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("API.Entities.Follow", b =>
                 {
                     b.HasOne("API.Entities.User", "Follower")
-                        .WithMany("Following")
+                        .WithMany("Followers")
                         .HasForeignKey("FollowerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("API.Entities.User", "Following")
-                        .WithMany("Followers")
+                        .WithMany("Following")
                         .HasForeignKey("FollowingId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -309,11 +346,21 @@ namespace API.Migrations
 
             modelBuilder.Entity("API.Entities.Like", b =>
                 {
-                    b.HasOne("API.Entities.Post", null)
-                        .WithMany("Like")
+                    b.HasOne("API.Entities.User", "User")
+                        .WithMany("Likes")
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("API.Entities.Post", "Post")
+                        .WithMany("Likes")
                         .HasForeignKey("PostId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Post");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("API.Entities.Messaging", b =>
@@ -337,11 +384,27 @@ namespace API.Migrations
 
             modelBuilder.Entity("API.Entities.Notification", b =>
                 {
-                    b.HasOne("API.Entities.User", null)
+                    b.HasOne("API.Entities.User", "Actor")
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("API.Entities.Post", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId");
+
+                    b.HasOne("API.Entities.User", "User")
                         .WithMany("Notifications")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Actor");
+
+                    b.Navigation("Post");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("API.Entities.Post", b =>
@@ -357,22 +420,37 @@ namespace API.Migrations
 
             modelBuilder.Entity("Photo", b =>
                 {
-                    b.HasOne("API.Entities.Post", null)
+                    b.HasOne("API.Entities.Post", "Post")
                         .WithMany("Photos")
                         .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("API.Entities.User", "User")
+                        .WithMany("Photos")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Post");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Story", b =>
+                {
+                    b.HasOne("API.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("API.Entities.User", null)
-                        .WithMany("Photos")
-                        .HasForeignKey("UserId");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("API.Entities.Post", b =>
                 {
                     b.Navigation("Comments");
 
-                    b.Navigation("Like");
+                    b.Navigation("Likes");
 
                     b.Navigation("Photos");
                 });
@@ -384,6 +462,8 @@ namespace API.Migrations
                     b.Navigation("Followers");
 
                     b.Navigation("Following");
+
+                    b.Navigation("Likes");
 
                     b.Navigation("Notifications");
 

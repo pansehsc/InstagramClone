@@ -4,18 +4,30 @@ using API.Interfaces;
 using API.Repositories;
 using API.Extensions;
 using API.Services;
+using API.Mapping;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using API.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
+// Console.WriteLine(
+//     $"PROGRAM CloudName = '{builder.Configuration["CloudinarySettings:CloudName"]}'"
+// );
 builder.Services.AddControllers();
-
+builder.Services.Configure<CloudinarySettings>(
+    builder.Configuration.GetSection("CloudinarySettings"));
 // Database
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseSqlite(
         builder.Configuration.GetConnectionString("DefaultConnection"));
+});
+
+// Mapping
+builder.Services.AddAutoMapper(autoMapperConfiguration  =>
+{
+    autoMapperConfiguration.AddProfile<MappingProfile>();
 });
 
 // Dependency Injection
@@ -29,9 +41,13 @@ builder.Services.AddScoped<IPostRepository, PostRepository>();
 //builder.Services.AddTransient<ExceptionMiddleware>();
 builder.Services.AddScoped<ILikeRepository, LikeRepository>();
 builder.Services.AddScoped<IFollowRepository, FollowRepository>();
-// builder.Services.AddScoped<IMessageRepository, MessageRepository>();
-// builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IStoryRepository, StoryRepository>();
+builder.Services.AddScoped<IPhotoRepository, PhotoRepository>();
 
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 // JWT Authentication
 builder.Services.AddIdentityServices(builder.Configuration);
 

@@ -12,26 +12,29 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Like> Like { get; set; }
     public DbSet<Post> Posts { get; set; }
     public DbSet<User> Users { get; set; }
-    public DbSet<Messaging> Messaging { get; set; }
+    public DbSet<Messaging> Messages { get; set; }
     public DbSet<Notification> Notification { get; set; }
+    public DbSet<Story> Stories { get; set; }
+
     protected override void OnModelCreating(ModelBuilder builder)
 
-    {
+    { // set relations 
         base.OnModelCreating(builder);
         builder.Entity<Follow>()
-        .HasKey(f => new { f.FollowerId, f.FollowingId });
-        // builder.Entity<k
-        builder.Entity<Follow>()
-        .HasOne(f => f.Follower)
-        .WithMany(user => user.Following)
-        .HasForeignKey(f => f.FollowerId)
-        .OnDelete(DeleteBehavior.Restrict);
+            .HasKey(f => new { f.FollowerId, f.FollowingId });
 
         builder.Entity<Follow>()
-        .HasOne(f => f.Following)
-        .WithMany(user => user.Followers)
-        .HasForeignKey(f => f.FollowingId)
-        .OnDelete(DeleteBehavior.Restrict);
+            .HasOne(f => f.Follower)
+            .WithMany(user => user.Followers)
+            .HasForeignKey(f => f.FollowerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Follow>()
+            .HasOne(f => f.Following)
+            .WithMany(user => user.Following)
+            .HasForeignKey(f => f.FollowingId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.Entity<Messaging>()
         .HasOne(m => m.Sender)
         .WithMany(u => u.SentMessages)
@@ -44,8 +47,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         .HasForeignKey(m => m.ReceiverId)
         .OnDelete(DeleteBehavior.Restrict);
 
-        builder.Entity<Like>()
-            .HasKey(x => new { x.CreatedById, x.PostId });
+        builder.Entity<Like>() //Composite key.
+            .HasKey(x => new { x.CreatedById, x.PostId }); //
 
         builder.Entity<Like>()
             .HasOne(x => x.User)
@@ -57,19 +60,34 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             .WithMany(p => p.Likes)
             .HasForeignKey(x => x.PostId);
 
-        builder.Entity<Follow>()
-            .HasKey(x => new { x.FollowerId, x.FollowingId });
-
-        builder.Entity<Follow>()
-            .HasOne(x => x.Follower)
-            .WithMany(x => x.Following)
-            .HasForeignKey(x => x.FollowerId)
+        builder.Entity<Notification>()
+            .HasOne(n => n.User)
+            .WithMany(u => u.Notifications)
+            .HasForeignKey(n => n.UserId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.Entity<Follow>()
-            .HasOne(x => x.Following)
-            .WithMany(x => x.Followers)
-            .HasForeignKey(x => x.FollowingId)
+        builder.Entity<Notification>()
+            .HasOne(n => n.Actor)
+            .WithMany()
+            .HasForeignKey(n => n.ActorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Photo>()
+            .HasOne(p => p.User)
+            .WithMany(u => u.Photos)
+            .HasForeignKey(p => p.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Photo>()
+            .HasOne(p => p.Post)
+            .WithMany(p => p.Photos)
+            .HasForeignKey(p => p.PostId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Comment>()
+            .HasOne(c => c.User)
+            .WithMany(u => u.Comments)
+            .HasForeignKey(c => c.CreatedById)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -1,8 +1,11 @@
 using API.DTOs;
+using API.DTOs.Follows;
 using API.DTOs.Photos;
 using API.Entities;
 using API.Extensions;
 using API.Interfaces;
+using API.Mapping;
+using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,10 +14,12 @@ namespace API.Controllers;
 [Authorize]
 public class FollowsController(
     IFollowRepository followRepository,
-    IUserRepository userRepository)
+    IUserRepository userRepository,
+    IMapper mapper)
     : BaseApiController
 {
-    [HttpPost("{userId:guid}")]
+
+    [HttpPost("{userId:guid}")] //user who will follow
     public async Task<ActionResult> FollowUser(Guid userId)
     {
         var currentUserId = User.GetUserId();
@@ -41,12 +46,12 @@ public class FollowsController(
         followRepository.Add(follow);
 
         if (await followRepository.SaveAllAsync())
-            return Ok();
+            return Ok("add follow successfully");
 
         return BadRequest("Problem following user.");
     }
 
-    [HttpDelete("{userId:guid}")]
+    [HttpDelete("{userId:guid}")] //user who will follow
     public async Task<ActionResult> UnfollowUser(Guid userId)
     {
         var currentUserId = User.GetUserId();
@@ -59,7 +64,7 @@ public class FollowsController(
         followRepository.Delete(follow);
 
         if (await followRepository.SaveAllAsync())
-            return NoContent();
+            return Ok("unfollow successfully");
 
         return BadRequest("Problem unfollowing user.");
     }
@@ -68,14 +73,7 @@ public class FollowsController(
     public async Task<ActionResult<IEnumerable<FollowersDto>>> GetFollowers(Guid userId)
     {
         var followers = await followRepository.GetFollowersAsync(userId);
-
-        var result = followers.Select(f => new FollowersDto
-        {
-            UserId = f.Follower.Id,
-            UserName = f.Follower.UserName,
-            ProfilePictureUrl = f.Follower.ProfilePictureUrl
-        });
-
+        var result = mapper.Map<IEnumerable<FollowersDto>>(followers);
         return Ok(result);
     }
 
@@ -83,14 +81,24 @@ public class FollowsController(
     public async Task<ActionResult<IEnumerable<FollowersDto>>> GetFollowing(Guid userId)
     {
         var following = await followRepository.GetFollowingAsync(userId);
-
-        var result = following.Select(f => new FollowersDto
-        {
-            UserId = f.Following.Id,
-            UserName = f.Following.UserName,
-            ProfilePictureUrl = f.Following.ProfilePictureUrl
-        });
-
+        var result = mapper.Map<IEnumerable<FollowingDto>>(following);
         return Ok(result);
+    }
+    [HttpGet("status/{userId:guid}")]
+    public async Task<ActionResult<FollowStateDto>> GetFollowStatus(Guid userId)
+    {
+        var currentUserId = User.GetUserId();
+        if (currentUserId == userId)
+            return BadRequest("You cannot check follow status for yourself.");
+        var user = await userRepository.GetByIdAsync(userId);
+        if (user == null)
+            return NotFound("User not found.");
+        var isFollowing = await followRepository.IsFollowingAsync(
+            currentUserId,
+            userId);
+        return Ok(new FollowStateDto
+        {
+            IsFollowing = isFollowing
+        });
     }
 }

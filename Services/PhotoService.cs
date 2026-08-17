@@ -12,6 +12,7 @@ public class PhotoService : IPhotoService
 
     public PhotoService(IOptions<CloudinarySettings> config)
     {
+
         var account = new Account(
             config.Value.CloudName,
             config.Value.ApiKey,
@@ -20,29 +21,44 @@ public class PhotoService : IPhotoService
         _cloudinary = new Cloudinary(account);
     }
 
-    public async Task<ImageUploadResult> AddPhotoAsync(IFormFile file)
+    public async Task<ImageUploadResult> AddPhotoAsync(
+        IFormFile file)
     {
         var uploadResult = new ImageUploadResult();
 
-        if (file.Length > 0)
+
+        if (file == null || file.Length == 0)
         {
-            await using var stream = file.OpenReadStream();
-
-            var uploadParams = new ImageUploadParams
-            {
-                File = new FileDescription(file.FileName, stream)
-            };
-
-            uploadResult = await _cloudinary.UploadAsync(uploadParams);
+            throw new ArgumentException(
+                "Invalid photo file.");
         }
+
+
+        await using var stream = file.OpenReadStream();
+
+
+        var uploadParams = new ImageUploadParams
+        {
+            File = new FileDescription(
+                file.FileName,
+                stream)
+        };
+
+
+        uploadResult =
+            await _cloudinary.UploadAsync(uploadParams);
+
 
         return uploadResult;
     }
 
-    public async Task<DeletionResult> DeletePhotoAsync(string publicId)
+    public async Task<DeletionResult> DeletePhotoAsync(
+        string publicId)
     {
-        var deleteParams = new DeletionParams(publicId);
+        var deleteParams =
+            new DeletionParams(publicId);
 
-        return await _cloudinary.DestroyAsync(deleteParams);
+        return await _cloudinary.DestroyAsync(
+            deleteParams);
     }
 }

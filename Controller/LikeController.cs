@@ -1,7 +1,11 @@
 using API.DTOs.Likes;
+using API.DTOs.Notifications;
 using API.Entities;
 using API.Extensions;
 using API.Interfaces;
+using API.Mapping;
+using API.Services;
+using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,9 +14,12 @@ namespace API.Controllers;
 [Authorize]
 public class LikesController(
     ILikeRepository likeRepository,
-    IPostRepository postRepository)
+    IPostRepository postRepository,
+    INotificationService notificationService,
+    IMapper mapper)
     : BaseApiController
 {
+    // add like
     [HttpPost("/api/posts/{postId:guid}/like")]
     public async Task<ActionResult> LikePost(Guid postId)
     {
@@ -33,29 +40,44 @@ public class LikesController(
             CreatedById = userId,
             PostId = postId
         };
-
         likeRepository.Add(like);
-
         if (await likeRepository.SaveAllAsync())
-            return Ok();
-
+        {
+            if (post.UserId != userId)
+            {
+                await notificationService.CreateNotificationAsync(
+            new CreateNotificationDto
+            {
+                UserId = post.UserId,
+                ActorId = userId,
+                NotificationType = "Like",
+                PostId = postId
+            });
+                return Ok("create notification for adding like successfully");
+            }
+            else
+            {
+                return BadRequest("Problem sending notification.");
+            }
+        }
         return BadRequest("Problem liking post.");
     }
-
+    //remove like
     [HttpDelete("/api/posts/{postId:guid}/like")]
     public async Task<ActionResult> UnlikePost(Guid postId)
     {
         var userId = User.GetUserId();
 
         var like = await likeRepository.GetLikeAsync(userId, postId);
-
         if (like == null)
             return NotFound();
+        if (like.CreatedById != userId)
+            return Forbid();
 
         likeRepository.Delete(like);
 
         if (await likeRepository.SaveAllAsync())
-            return NoContent();
+            return Ok("unlike post successfully");
 
         return BadRequest("Problem removing like.");
     }
@@ -65,21 +87,14 @@ public class LikesController(
     {
         var count = await likeRepository.GetLikesCountAsync(postId);
 
-        return Ok(count);
+        return Ok($"no of users who like this post:{count}");
     }
 
     [HttpGet("/api/posts/{postId:guid}/likes")]
     public async Task<ActionResult<IEnumerable<PostLikeDto>>> GetLikes(Guid postId)
     {
         var likes = await likeRepository.GetPostLikesAsync(postId);
-
-        var result = likes.Select(x => new PostLikeDto
-        {
-            UserId = x.CreatedById,
-            UserName = x.User.UserName,
-            ProfilePictureUrl = x.User.ProfilePictureUrl
-        });
-
+        var result = mapper.Map<IEnumerable<PostLikeDto>>(likes);
         return Ok(result);
     }
 }

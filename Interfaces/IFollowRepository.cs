@@ -10,5 +10,5 @@ public interface IFollowRepository
     void Add(Follow follow);
     void Delete(Follow follow);
     Task<bool> SaveAllAsync();
-
+    Task<bool> IsFollowingAsync(Guid currentUserId, Guid userId);
 }
