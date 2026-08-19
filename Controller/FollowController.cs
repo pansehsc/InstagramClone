@@ -1,5 +1,6 @@
 using API.DTOs;
 using API.DTOs.Follows;
+using API.DTOs.Notifications;
 using API.DTOs.Photos;
 using API.Entities;
 using API.Extensions;
@@ -14,6 +15,7 @@ namespace API.Controllers;
 [Authorize]
 public class FollowsController(
     IFollowRepository followRepository,
+    INotificationService notificationService,
     IUserRepository userRepository,
     IMapper mapper)
     : BaseApiController
@@ -46,7 +48,22 @@ public class FollowsController(
         followRepository.Add(follow);
 
         if (await followRepository.SaveAllAsync())
-            return Ok("add follow successfully");
+        {
+            NotificationDto? notificationDto =
+        await notificationService.CreateNotificationAsync(
+            new CreateNotificationDto
+            {
+                UserId = userId,
+                ActorId = currentUserId,
+                NotificationType = "Follow"
+            });
+
+            return Ok(new
+            {
+                Message = "Follow added successfully.",
+                Notification = notificationDto
+            });
+        }
 
         return BadRequest("Problem following user.");
     }

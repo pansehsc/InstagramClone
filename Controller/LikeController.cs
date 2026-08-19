@@ -33,7 +33,7 @@ public class LikesController(
         var existingLike = await likeRepository.GetLikeAsync(userId, postId);
 
         if (existingLike != null)
-            return BadRequest("You already liked this post.");
+            return Ok("You already liked this post.");
 
         var like = new Like
         {
@@ -41,26 +41,26 @@ public class LikesController(
             PostId = postId
         };
         likeRepository.Add(like);
-        if (await likeRepository.SaveAllAsync())
+        if (!await likeRepository.SaveAllAsync())
+            return BadRequest("Problem liking post.");
+        NotificationDto? notificationDto = null;
+        if (post.UserId != userId)
         {
-            if (post.UserId != userId)
-            {
+            notificationDto =
                 await notificationService.CreateNotificationAsync(
-            new CreateNotificationDto
-            {
-                UserId = post.UserId,
-                ActorId = userId,
-                NotificationType = "Like",
-                PostId = postId
-            });
-                return Ok("create notification for adding like successfully");
-            }
-            else
-            {
-                return BadRequest("Problem sending notification.");
-            }
+                    new CreateNotificationDto
+                    {
+                        UserId = post.UserId,
+                        ActorId = userId,
+                        NotificationType = "Like",
+                        PostId = postId
+                    });
         }
-        return BadRequest("Problem liking post.");
+        return Ok(new
+        {
+            Message = "Post liked successfully.",
+            Notification = notificationDto
+        });
     }
     //remove like
     [HttpDelete("/api/posts/{postId:guid}/like")]

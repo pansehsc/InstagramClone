@@ -1,64 +1,60 @@
-# Account & Authentication API Documentation
+# Account API
 
-### Purpose
+## Purpose
 
-The `AccountController` handles **user registration, login, forget password and reset password**. It validates user input, securely hashes passwords, stores users through the repository, and generates a JWT token for authentication.
+The **Account API** manages user authentication, registration, password recovery, and profile photos.
 
----
+### Main Dependencies
 
-## 1. Components
-
-| Component           | Responsibility                         |
-| ------------------- | -------------------------------------- |
-| `AccountController` | Handles register/login requests        |
-| `RegisterDto`       | Data received when creating an account |
-| `LoginDto`          | Data received when logging in          |
-| `UserDto`           | Safe user data returned to the client  |
-| `ResetPasswordDto`  | Data received when setting a new password using a reset token |
-| `ForgetPasswordDto` | Data received when requesting a password-reset email |
-| `IUserRepository`   | User database operations               |
-| `IMapper`           | Converts DTOs ↔ `User` entity          |
-| `ITokenService`     | Generates JWT authentication tokens    |
-| `IEmailService`     | Defines the service responsible for sending emails    |
-| `EmailService`      | Implements IEmailService and sends emails through the configured email provider/SMTP server    |
+* `IUserRepository` — retrieves and stores user data.
+* `ITokenService` — creates JWT authentication tokens.
+* `IEmailService` — sends password-reset emails.
+* `IPhotoService` — uploads/deletes images using Cloudinary.
+* `IPhotoRepository` — manages photo records in the database.
+* `IMapper` — maps between DTOs and Entities.
 
 ---
 
-## 2. Register API
+## 1. Register
 
 **Endpoint:** `POST /api/account/register`
 
-**Request: `RegisterDto`**
+### Purpose
+
+Creates a new user account and returns a JWT token for authentication.
+
+### Request Body
 
 ```json
 {
-  "userName": "john123",
+  "userName": "john",
   "email": "john@example.com",
   "password": "123456",
   "gender": "Male",
-  "dateOfBirth": "2004-05-10",
+  "dateOfBirth": "2003-05-10",
   "country": "Egypt",
   "city": "Cairo"
 }
 ```
+### Response
 
-### Process
+```json
+{
+  "id": "user-id",
+  "userName": "john",
+  "email": "john@example.com",
+  "token": "jwt-token",
+  "profilePictureUrl": null
+}
+```
 
-1. Checks whether the email already exists.
-2. Checks whether the username already exists.
-3. Maps `RegisterDto` → `User`.
-4. Hashes the password using `HMACSHA512` and stores the hash and salt.
-5. Sets `LastActive`.
-6. Saves the user through `IUserRepository`.
-7. Maps `User` → `UserDto`.
-8. Generates a JWT using `ITokenService`.
-9. Returns the user information and token.
+---
 
-**Success:** `200 OK` + `UserDto`
+## 2. Login
 
-**Possible errors:**
+**Endpoint:** `POST /api/account/login`
 
-* `400 Bad Request`Dto`**
+### Request Body
 
 ```json
 {
@@ -67,61 +63,97 @@ The `AccountController` handles **user registration, login, forget password and 
 }
 ```
 
+## 3. Forgot Password
+//need correct email and password in appsettings.json
+**Endpoint:** `POST /api/account/forgot-password`
+
+### Purpose
+
+Starts the password-reset process.
+
+### Request Body
+
+```json
+{
+  "email": "john@example.com"
+}
+```
+
 ### Process
 
-1. Finds the user by email.
-2. Returns `401 Unauthorized` if the user does not exist.
-3. Hashes the entered password using the stored salt.
-4. Compares the generated hash with the stored password hash.
-5. Returns `401 Unauthorized` if the password is incorrect.
-6. Updates `LastActive`.
-7. Generates a JWT.
-8. Returns `UserDto`.
+1. Search for the user by email.
+2. Generate a secure random reset token.
+3. Store the token in the database.
+4. Set token expiration to **15 minutes**.
+5. Send the token to the user's email.
 
-**Success:** `200 OK` + `UserDto`
+## 4. Reset Password
 
----
- — email/username already exists or database save fails.
-* `400 Bad Request` — validation failure.
+**Endpoint:** `POST /api/account/reset-password`
 
----
+### Purpose
+Changes the user's password using a valid reset token.
 
-## 3. Login API
+### Request Body
 
-**Endpoint:** `POST /api/account/login`
+```json
+{
+  "email": "john@example.com",
+  "token": "reset-token",
+  "newPassword": "newPassword123"
+}
+```
 
-**Request: `Login
-## 4. DTOs
+### Validation
 
-### `RegisterDto`
+* User must exist.
+* Reset token must exist.
+* Token must match.
+* Token must not be expired.(15min)
 
-Used for **client → API** registration data.
+### Process
 
-* `UserName` — required
-* `Email` — required, valid email format
-* `Password` — required, minimum 6 characters
-* `Gender` — required
-* `DateOfBirth`
-* `Country` — required
-* `City` — required
-
-### `LoginDto`
-
-Used for **client → API** login data.
-
-* `Email` — required, valid email format
-* `Password` — required
-
-### `UserDto`
-
-Used for **API → client** response.
-
-* `Id`
-* `UserName`
-* `Email`
-* `Token`
-* `ProfilePictureUrl`
-
-Sensitive properties such as `PasswordHash` and `PasswordSalt` are **not returned to the client**.
+1. Validate the reset request.
+2. Hash the new password using `HMACSHA512`.
+3. Generate a new password salt.
+4. Replace the old password hash and salt.
+5. Remove the reset token and expiration date.
+6. Save the changes.
 
 ---
+
+## 5. Add Profile Photo
+
+**Endpoint:** `POST /api/account/profile-photo`
+
+### Request
+`form-data`
+
+### Process
+
+1. Get the authenticated user's ID from the JWT claims.
+2. Load the user and existing photos.
+3. Validate the uploaded file.
+4. Upload the image to **Cloudinary**.
+5. If another photo is currently the main photo, set `IsMain = false`.
+6. Create a new `Photo` entity.
+7. Store:
+
+   * Cloudinary URL
+   * Cloudinary Public ID
+   * User ID
+   * `IsMain = true`
+8. Save the photo in the database.
+9. Return `PhotoDto`.
+
+### Response
+
+```json
+{
+  "id": "photo-id",
+  "url": "https://cloudinary.com/...",
+  "uploadedAt": "2026-08-18T...",
+  "isMain": true
+}
+```
+

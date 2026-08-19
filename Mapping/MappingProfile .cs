@@ -47,7 +47,16 @@ public class MappingProfile : Profile
                 opt.Condition((src, dest, srcMember) => srcMember != null));
 
         // Posts
-
+        CreateMap<CreatePostDto, Post>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.UserId, opt => opt.Ignore())
+            .ForMember(dest => dest.User, opt => opt.Ignore())
+            .ForMember(dest => dest.Photos, opt => opt.Ignore())
+            .ForMember(dest => dest.Comments, opt => opt.Ignore())
+            .ForMember(dest => dest.Likes, opt => opt.Ignore());
+        CreateMap<UpdatePostDto, Post>()
+            .ForAllMembers(opt =>
+                opt.Condition((src, dest, srcMember) => srcMember != null));
         CreateMap<Post, PostDto>()
             .ForMember(
                 dest => dest.UserName,
@@ -59,7 +68,6 @@ public class MappingProfile : Profile
                         .Where(p => p.IsMain)
                         .Select(p => p.Url)
                         .FirstOrDefault()))
-
             .ForMember(
                 dest => dest.LikesCount,
                 opt => opt.MapFrom(src => src.Likes.Count))
@@ -69,6 +77,7 @@ public class MappingProfile : Profile
             .ForMember(
                 dest => dest.Photos,
                 opt => opt.MapFrom(src => src.Photos));
+
         // Comments 
         CreateMap<CreateCommentDto, Comment>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())

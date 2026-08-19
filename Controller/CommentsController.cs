@@ -44,10 +44,10 @@ public class CommentsController(
 
         if (!await commentRepository.SaveAllAsync())
             return BadRequest("Problem adding comment.");
-
+        NotificationDto? notificationDto = null;
         if (post.UserId != userId)
         {
-            await notificationService.CreateNotificationAsync(
+            notificationDto = await notificationService.CreateNotificationAsync(
                 new CreateNotificationDto
                 {
                     UserId = post.UserId,
@@ -59,7 +59,11 @@ public class CommentsController(
         var result = mapper.Map<CommentDto>(comment);
         var profilePhoto = user.Photos.FirstOrDefault(p => p.IsMain);
         result.ProfilePictureUrl = profilePhoto?.Url;
-        return Ok(result);
+        return Ok(new
+        {
+            Comment = result,
+            Notification = notificationDto
+        });
     }
 
     [HttpGet("/api/posts/{postId:guid}/comments")]

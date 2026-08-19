@@ -8,6 +8,7 @@ using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers;
+
 [Authorize]
 public class StoriesController(
     IStoryRepository storyRepository,
@@ -38,7 +39,7 @@ public class StoriesController(
             ExpiresAt = DateTime.UtcNow.AddHours(24)
         };
 
-        
+
         if (dto.File != null)
         {
             var result =
@@ -59,7 +60,7 @@ public class StoriesController(
         if (!await storyRepository.SaveAllAsync())
             return BadRequest("Problem creating story.");
 
-        
+
         var createdStory =
             await storyRepository.GetByIdAsync(story.Id);
 
@@ -146,5 +147,18 @@ public class StoriesController(
             return BadRequest("Problem deleting story.");
 
         return NoContent();
+    }
+    //GET ALL STORY OF USERS YOU FOLLOW
+    [HttpGet("following")]
+    public async Task<ActionResult<IEnumerable<StoryDto>>> GetStoriesFromFollowing()
+    {
+        var userId = User.GetUserId();
+
+        var stories =
+            await storyRepository.GetStoriesFromFollowingAsync(userId);
+
+        var result = mapper.Map<IEnumerable<StoryDto>>(stories);
+
+        return Ok(result);
     }
 }

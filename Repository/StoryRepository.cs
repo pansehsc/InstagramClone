@@ -50,4 +50,19 @@ public class StoryRepository(AppDbContext context)
     {
         return await context.SaveChangesAsync() > 0;
     }
+    public async Task<IEnumerable<Story>> GetStoriesFromFollowingAsync(Guid userId)
+    {
+        var followingIds = await context.Follow
+        .Where(f => f.FollowerId == userId)
+        .Select(f => f.FollowingId)
+        .ToListAsync();
+
+        return await context.Stories
+            .Include(s => s.User)
+            .Where(s =>
+                followingIds.Contains(s.UserId) &&
+                s.ExpiresAt > DateTime.UtcNow)
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync();
+    }
 }

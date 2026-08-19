@@ -6,4 +6,5 @@ public class CreateNotificationDto
     public Guid ActorId { get; set; }
     public string NotificationType { get; set; } = string.Empty;
     public Guid? PostId { get; set; }
+    public Guid? CommentId { get; set; }
 }

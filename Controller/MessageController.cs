@@ -1,4 +1,5 @@
 using API.DTOs.Messages;
+using API.DTOs.Notifications;
 using API.Entities;
 using API.Extensions;
 using API.Interfaces;
@@ -12,6 +13,7 @@ namespace API.Controllers;
 public class MessagesController(
     IMessageRepository messageRepository,
     IUserRepository userRepository,
+    INotificationService notificationService,
     IMapper mapper)
     : BaseApiController
 {
@@ -32,8 +34,21 @@ public class MessagesController(
         messageRepository.Add(message);
         if (!await messageRepository.SaveAllAsync())
             return BadRequest("Problem sending message.");
+        NotificationDto? notificationDto = null;
+        notificationDto =
+            await notificationService.CreateNotificationAsync(
+                new CreateNotificationDto
+                {
+                    UserId = dto.ReceiverId,
+                    ActorId = senderId,
+                    NotificationType = "Message"
+                });
         var result = mapper.Map<MessageDto>(message);
-        return Ok(result);
+        return Ok(new
+        {
+            Message = result,
+            Notification = notificationDto
+        });
     }
 
     // Get conversation

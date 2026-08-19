@@ -10,4 +10,5 @@ public interface IStoryRepository
     void Add(Story story);
     void Delete(Story story);
     Task<bool> SaveAllAsync();
+    Task<IEnumerable<Story>> GetStoriesFromFollowingAsync(Guid userId);
 }
